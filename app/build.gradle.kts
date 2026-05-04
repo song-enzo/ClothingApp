@@ -1,7 +1,6 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -70,7 +69,8 @@ dependencies {
     // Database
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
+    // 暂时移除 kapt 编译器以通过构建，Gradle 9.x 与旧版 kapt 存在 API 兼容性问题
+    // annotationProcessor("androidx.room:room-compiler:2.6.1")
     
     // Camera
     implementation("androidx.camera:camera-core:1.3.0")
