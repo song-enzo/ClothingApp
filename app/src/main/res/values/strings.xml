@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">服装产品管理</string>
+    <string name="add_product">添加新款</string>
+    <string name="product_code">款式编号</string>
+    <string name="product_name">款式名称</string>
+    <string name="factory_name">工厂名字</string>
+    <string name="fabric_name">面料名称</string>
+    <string name="labor_cost">工价</string>
+    <string name="ironing_buttons">烫和纽扣</string>
+    <string name="accessories">辅料</string>
+    <string name="total_cost">综合成本价</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="delete">删除</string>
+    <string name="search">搜索</string>
+    <string name="details">详细</string>
+    <string name="images">图片</string>
+</resources>
