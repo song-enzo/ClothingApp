@@ -1,6 +1,8 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    // 添加 KSP 插件来处理 Room 数据库，解决依赖解析冲突
+    id("com.google.devtools.ksp") version "1.9.21-1.0.16" 
 }
 
 android {
@@ -39,8 +41,10 @@ android {
     buildFeatures {
         compose = true
     }
+    // 注意：在最新版配置中，Compose 编译器版本通常由 Kotlin 插件自动管理
+    // 如果编译报 Compose 版本错，保留此处；如果报锁定错，可以尝试注释掉它
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
+        kotlinCompilerExtensionVersion = "1.5.8" 
     }
     packaging {
         resources {
@@ -66,10 +70,10 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.5")
 
-    // Database
+    // Database (Room) - 修复重点：使用 KSP 替代 annotationProcessor
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
-    annotationProcessor("androidx.room:room-compiler:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
     
     // Camera
     implementation("androidx.camera:camera-core:1.3.0")
