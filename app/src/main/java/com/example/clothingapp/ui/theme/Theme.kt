@@ -1,6 +1,5 @@
 package com.example.clothingapp.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkMode
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -18,10 +17,9 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun ClothingAppTheme(
-    darkTheme: Boolean = isSystemInDarkMode(),
+    darkTheme: Boolean = true, // Default to dark theme
     content: @Composable () -> Unit
 ) {
-    // For now, we only have a dark theme defined
     val colorScheme = DarkColorScheme
 
     MaterialTheme(
