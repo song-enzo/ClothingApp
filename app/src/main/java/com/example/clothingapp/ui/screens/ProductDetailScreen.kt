@@ -18,12 +18,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,19 +30,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.clothingapp.data.Product
 import com.example.clothingapp.ui.ProductViewModel
 
 @Composable
 fun ProductDetailScreen(navController: NavController, viewModel: ProductViewModel, productId: Int) {
-    var product by remember { mutableStateOf<Product?>(null) }
-
-    LaunchedEffect(productId) {
-        // In a real app, you would fetch the product from the repository
-        // For now, we'll get it from the products list
-        val products = viewModel.products.collectAsState().value
-        product = products.find { it.id == productId }
-    }
+    val products by viewModel.products.collectAsState()
+    val product = products.find { it.id == productId }
 
     if (product == null) {
         Box(
@@ -79,15 +68,15 @@ fun ProductDetailScreen(navController: NavController, viewModel: ProductViewMode
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    product!!.code,
+                    product.code,
                     color = Color(0xFFD4A853),
                     fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace
                 )
-                Text(product!!.name, color = Color(0xFFEBEBF0), fontWeight = FontWeight.Bold)
+                Text(product.name, color = Color(0xFFEBEBF0), fontWeight = FontWeight.Bold)
             }
             IconButton(onClick = {
-                viewModel.deleteProduct(product!!)
+                viewModel.deleteProduct(product)
                 navController.popBackStack()
             }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFFF3B30))
@@ -103,10 +92,10 @@ fun ProductDetailScreen(navController: NavController, viewModel: ProductViewMode
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Image
-            if (product!!.imagePaths.isNotEmpty()) {
+            if (product.imagePaths.isNotEmpty()) {
                 AsyncImage(
-                    model = product!!.imagePaths[0],
-                    contentDescription = product!!.name,
+                    model = product.imagePaths[0],
+                    contentDescription = product.name,
                     modifier = Modifier
                         .fillMaxWidth()
                         .size(300.dp),
@@ -116,27 +105,27 @@ fun ProductDetailScreen(navController: NavController, viewModel: ProductViewMode
 
             // Basic info
             DetailSection("基本信息") {
-                DetailRow("编号", product!!.code)
-                DetailRow("名称", product!!.name)
-                DetailRow("工厂", product!!.factoryName)
+                DetailRow("编号", product.code)
+                DetailRow("名称", product.name)
+                DetailRow("工厂", product.factoryName)
             }
 
             // Fabrics
             DetailSection("面料明细") {
-                product!!.fabricNames.forEachIndexed { i, name ->
+                product.fabricNames.forEachIndexed { i, name ->
                     DetailRow(
                         "面料${i + 1}: $name",
-                        "¥${String.format("%.2f", product!!.fabricPrices.getOrNull(i) ?: 0.0)}"
+                        "¥${String.format("%.2f", product.fabricPrices.getOrNull(i) ?: 0.0)}"
                     )
                 }
-                DetailRow("小计", "¥${String.format("%.2f", product!!.getFabricTotal())}")
+                DetailRow("小计", "¥${String.format("%.2f", product.getFabricTotal())}")
             }
 
             // Costs
             DetailSection("工艺费用") {
-                DetailRow("工价", "¥${String.format("%.2f", product!!.laborCost)}")
-                DetailRow("烫和纽扣", "¥${String.format("%.2f", product!!.ironingAndButtons)}")
-                DetailRow("辅料", "¥${String.format("%.2f", product!!.accessories)}")
+                DetailRow("工价", "¥${String.format("%.2f", product.laborCost)}")
+                DetailRow("烫和纽扣", "¥${String.format("%.2f", product.ironingAndButtons)}")
+                DetailRow("辅料", "¥${String.format("%.2f", product.accessories)}")
             }
 
             // Total cost
@@ -153,7 +142,7 @@ fun ProductDetailScreen(navController: NavController, viewModel: ProductViewMode
                 ) {
                     Text("综合成本价", color = Color(0xFFEBEBF0))
                     Text(
-                        "¥${String.format("%.2f", product!!.getTotalCost())}",
+                        "¥${String.format("%.2f", product.getTotalCost())}",
                         color = Color(0xFFD4A853),
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
@@ -163,9 +152,9 @@ fun ProductDetailScreen(navController: NavController, viewModel: ProductViewMode
             }
 
             // Notes
-            if (product!!.notes.isNotEmpty()) {
+            if (product.notes.isNotEmpty()) {
                 DetailSection("备注") {
-                    Text(product!!.notes, color = Color(0xFFEBEBF0), fontSize = 12.sp)
+                    Text(product.notes, color = Color(0xFFEBEBF0), fontSize = 12.sp)
                 }
             }
         }

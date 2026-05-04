@@ -21,6 +21,7 @@ fun ClothingAppTheme(
     darkTheme: Boolean = isSystemInDarkMode(),
     content: @Composable () -> Unit
 ) {
+    // For now, we only have a dark theme defined
     val colorScheme = DarkColorScheme
 
     MaterialTheme(
