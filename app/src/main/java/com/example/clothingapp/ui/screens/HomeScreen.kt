@@ -2,14 +2,7 @@ package com.example.clothingapp.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -18,136 +11,96 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.clothingapp.data.Product
 import com.example.clothingapp.ui.ProductViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
-    val products = viewModel.products.collectAsState().value
-    val searchQuery = viewModel.searchQuery.collectAsState().value
+    val products by viewModel.products.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF1A1A1E))
-    ) {
-        // Header with search and add button
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF0F0F12))
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Logo
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(Color(0xFFD4A853), RoundedCornerShape(2.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "FC",
-                    color = Color(0xFF1A1A1E),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
-                )
-            }
-
-            // Search bar
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .background(Color(0xFF2C2C2E), RoundedCornerShape(2.dp))
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = Color(0xFF8E8E93),
-                    modifier = Modifier.size(16.dp)
-                )
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.setSearchQuery(it) },
-                    modifier = Modifier
-                        .weight(1f),
-                    textStyle = TextStyle(
-                        color = Color(0xFFEBEBF0),
-                        fontSize = 12.sp
-                    ),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        if (searchQuery.isEmpty()) {
-                            Text(
-                                "搜索...",
-                                color = Color(0xFF8E8E93),
-                                fontSize = 12.sp
-                            )
+    Scaffold(
+        topBar = {
+            Column(modifier = Modifier.background(Color(0xFF0F0F12))) {
+                TopAppBar(
+                    title = { Text("服装型号管理", color = Color.White, fontWeight = FontWeight.Bold) },
+                    actions = {
+                        IconButton(onClick = { navController.navigate("settings") }) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color(0xFFD4A853))
                         }
-                        innerTextField()
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F0F12))
+                )
+                // 搜索栏
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color(0xFF2C2C2E))
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.setSearchQuery(it) },
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                            decorationBox = { innerTextField ->
+                                if (searchQuery.isEmpty()) {
+                                    Text("搜索编号、名称或工厂...", color = Color.Gray, fontSize = 14.sp)
+                                }
+                                innerTextField()
+                            }
+                        )
                     }
-                )
+                }
             }
-
-            // Add button
-            IconButton(
+        },
+        floatingActionButton = {
+            FloatingActionButton(
                 onClick = { navController.navigate("add") },
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(Color(0xFFD4A853), RoundedCornerShape(2.dp))
+                containerColor = Color(0xFFD4A853),
+                contentColor = Color(0xFF1A1A1E)
             ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Add",
-                    tint = Color(0xFF1A1A1E),
-                    modifier = Modifier.size(20.dp)
-                )
+                Icon(Icons.Default.Add, contentDescription = "Add")
             }
-        }
-
-        // Product grid
+        },
+        containerColor = Color(0xFF1A1A1E)
+    ) { padding ->
         if (products.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "暂无产品",
-                    color = Color(0xFF8E8E93),
-                    fontSize = 14.sp
-                )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("暂无款式数据", color = Color.Gray)
             }
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(12.dp),
+                contentPadding = PaddingValues(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(padding)
             ) {
                 items(products) { product ->
-                    ProductCard(product, navController)
+                    ProductCard(product) {
+                        navController.navigate("detail/${product.id}")
+                    }
                 }
             }
         }
@@ -155,76 +108,66 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
 }
 
 @Composable
-fun ProductCard(product: com.example.clothingapp.data.Product, navController: NavController) {
-    Column(
+fun ProductCard(product: Product, onClick: () -> Unit) {
+    Card(
         modifier = Modifier
-            .background(Color(0xFF2C2C2E), RoundedCornerShape(2.dp))
-            .clickable { navController.navigate("detail/${product.id}") }
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF2C2C2E)),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        // Image
-        if (product.imagePaths.isNotEmpty()) {
-            AsyncImage(
-                model = product.imagePaths[0],
-                contentDescription = product.name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .size(200.dp),
-                contentScale = ContentScale.Crop
-            )
-        } else {
+        Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .size(200.dp)
-                    .background(Color(0xFF1A1A1E)),
+                    .height(150.dp)
+                    .background(Color(0xFF3A3A3C)),
                 contentAlignment = Alignment.Center
             ) {
-                Text("无图片", color = Color(0xFF8E8E93), fontSize = 12.sp)
+                if (product.imagePaths.isNotEmpty()) {
+                    AsyncImage(
+                        model = product.imagePaths[0],
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(32.dp))
+                        Text("无图片", color = Color.Gray, fontSize = 12.sp)
+                    }
+                }
             }
-        }
-
-        // Info
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                product.code,
-                color = Color(0xFFD4A853),
-                fontSize = 10.sp,
-                fontFamily = FontFamily.Monospace
-            )
-            Text(
-                product.name,
-                color = Color(0xFFEBEBF0),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1
-            )
-            Text(
-                product.factoryName,
-                color = Color(0xFF8E8E93),
-                fontSize = 10.sp,
-                maxLines = 1
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Column(modifier = Modifier.padding(10.dp)) {
                 Text(
-                    "成本价",
-                    color = Color(0xFF8E8E93),
-                    fontSize = 10.sp
-                )
-                Text(
-                    "¥${String.format("%.2f", product.getTotalCost())}",
+                    text = product.code,
                     color = Color(0xFFD4A853),
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
                 )
+                Text(
+                    text = product.name.ifEmpty { "未命名款式" },
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    maxLines = 1
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = "¥${String.format("%.1f", product.getTotalCost())}",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = product.getFormattedDate().split(" ")[0],
+                        color = Color.Gray,
+                        fontSize = 10.sp
+                    )
+                }
             }
         }
     }
