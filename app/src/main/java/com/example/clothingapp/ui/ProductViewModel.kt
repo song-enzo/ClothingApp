@@ -17,12 +17,18 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _selectedProduct = MutableStateFlow<Product?>(null)
-    val selectedProduct: StateFlow<Product?> = _selectedProduct.asStateFlow()
+    // 分类管理数据
+    private val _fabrics = MutableStateFlow(listOf("棉", "麻", "丝", "毛", "涤纶", "雪纺"))
+    val fabrics: StateFlow<List<String>> = _fabrics.asStateFlow()
 
-    // 面料名称列表，可以从设置中添加
-    private val _availableFabrics = MutableStateFlow<List<String>>(listOf("棉", "麻", "丝", "毛", "涤纶", "雪纺"))
-    val availableFabrics: StateFlow<List<String>> = _availableFabrics.asStateFlow()
+    private val _factories = MutableStateFlow(listOf("一号工厂", "二号工厂", "外协A", "外协B"))
+    val factories: StateFlow<List<String>> = _factories.asStateFlow()
+
+    private val _accessories = MutableStateFlow(listOf("拉链", "纽扣", "织带", "标牌"))
+    val accessories: StateFlow<List<String>> = _accessories.asStateFlow()
+
+    private val _processes = MutableStateFlow(listOf("印花", "绣花", "洗水", "压褶"))
+    val processes: StateFlow<List<String>> = _processes.asStateFlow()
 
     init {
         loadProducts()
@@ -45,54 +51,39 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
         }
     }
 
-    fun addFabric(name: String) {
-        if (name.isNotBlank() && !_availableFabrics.value.contains(name)) {
-            _availableFabrics.value = _availableFabrics.value + name
+    // 通用分类管理方法
+    fun addItem(category: String, name: String) {
+        if (name.isBlank()) return
+        when (category) {
+            "fabric" -> if (!_fabrics.value.contains(name)) _fabrics.value = _fabrics.value + name
+            "factory" -> if (!_factories.value.contains(name)) _factories.value = _factories.value + name
+            "accessory" -> if (!_accessories.value.contains(name)) _accessories.value = _accessories.value + name
+            "process" -> if (!_processes.value.contains(name)) _processes.value = _processes.value + name
         }
     }
 
-    fun removeFabric(name: String) {
-        _availableFabrics.value = _availableFabrics.value - name
+    fun removeItem(category: String, name: String) {
+        when (category) {
+            "fabric" -> _fabrics.value = _fabrics.value - name
+            "factory" -> _factories.value = _factories.value - name
+            "accessory" -> _accessories.value = _accessories.value - name
+            "process" -> _processes.value = _processes.value - name
+        }
     }
 
-    fun addProduct(
-        code: String,
-        name: String = "",
-        factoryName: String = "",
-        fabricNames: List<String> = emptyList(),
-        fabricPrices: List<Double> = emptyList(),
-        laborCost: Double = 0.0,
-        ironingAndButtons: Double = 0.0,
-        accessories: Double = 0.0,
-        notes: String = "",
-        imagePaths: List<String> = emptyList()
-    ) {
+    fun saveProduct(product: Product) {
         viewModelScope.launch {
-            val product = Product(
-                code = code,
-                name = name,
-                factoryName = factoryName,
-                fabricNames = fabricNames,
-                fabricPrices = fabricPrices,
-                laborCost = laborCost,
-                ironingAndButtons = ironingAndButtons,
-                accessories = accessories,
-                notes = notes,
-                imagePaths = imagePaths
-            )
-            repository.insertProduct(product)
+            if (product.id == 0) {
+                repository.insertProduct(product)
+            } else {
+                repository.updateProduct(product)
+            }
         }
     }
 
     fun deleteProduct(product: Product) {
         viewModelScope.launch {
             repository.deleteProduct(product)
-        }
-    }
-
-    fun updateProduct(product: Product) {
-        viewModelScope.launch {
-            repository.updateProduct(product)
         }
     }
 }

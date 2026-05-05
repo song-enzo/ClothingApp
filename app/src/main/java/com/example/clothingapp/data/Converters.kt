@@ -8,9 +8,7 @@ class Converters {
     private val gson = Gson()
 
     @TypeConverter
-    fun fromStringList(value: List<String>?): String {
-        return gson.toJson(value)
-    }
+    fun fromStringList(value: List<String>?): String = gson.toJson(value)
 
     @TypeConverter
     fun toStringList(value: String): List<String> {
@@ -19,13 +17,20 @@ class Converters {
     }
 
     @TypeConverter
-    fun fromDoubleList(value: List<Double>?): String {
-        return gson.toJson(value)
+    fun fromFabricList(value: List<FabricItem>?): String = gson.toJson(value)
+
+    @TypeConverter
+    fun toFabricList(value: String): List<FabricItem> {
+        val listType = object : TypeToken<List<FabricItem>>() {}.type
+        return gson.fromJson(value, listType) ?: emptyList()
     }
 
     @TypeConverter
-    fun toDoubleList(value: String): List<Double> {
-        val listType = object : TypeToken<List<Double>>() {}.type
+    fun fromProcessList(value: List<ProcessItem>?): String = gson.toJson(value)
+
+    @TypeConverter
+    fun toProcessList(value: String): List<ProcessItem> {
+        val listType = object : TypeToken<List<ProcessItem>>() {}.type
         return gson.fromJson(value, listType) ?: emptyList()
     }
 }

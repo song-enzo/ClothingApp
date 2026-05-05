@@ -7,6 +7,19 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+data class FabricItem(
+    val name: String = "",
+    val meters: Double = 0.0,
+    val pricePerMeter: Double = 0.0
+) {
+    val total: Double get() = meters * pricePerMeter
+}
+
+data class ProcessItem(
+    val name: String = "",
+    val cost: Double = 0.0
+)
+
 @Entity(tableName = "products")
 @TypeConverters(Converters::class)
 data class Product(
@@ -15,24 +28,31 @@ data class Product(
     val code: String,
     val name: String = "",
     val factoryName: String = "",
-    val fabricNames: List<String> = emptyList(),
-    val fabricPrices: List<Double> = emptyList(),
+    val fabrics: List<FabricItem> = emptyList(),
+    val processes: List<ProcessItem> = emptyList(),
     val laborCost: Double = 0.0,
     val ironingAndButtons: Double = 0.0,
-    val accessories: Double = 0.0,
+    val accessories: List<ProcessItem> = emptyList(), // 辅料也改为动态列表
     val notes: String = "",
     val imagePaths: List<String> = emptyList(),
+    val mainImageIndex: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 ) {
     fun getTotalCost(): Double {
-        val fabricTotal = fabricPrices.sum()
-        return fabricTotal + laborCost + ironingAndButtons + accessories
+        val fabricTotal = fabrics.sumOf { it.total }
+        val processTotal = processes.sumOf { it.cost }
+        val accessoryTotal = accessories.sumOf { it.cost }
+        return fabricTotal + processTotal + accessoryTotal + laborCost + ironingAndButtons
     }
-
-    fun getFabricTotal(): Double = fabricPrices.sum()
 
     fun getFormattedDate(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
         return sdf.format(Date(createdAt))
+    }
+
+    fun getMainImagePath(): String? {
+        return if (imagePaths.isNotEmpty()) {
+            imagePaths.getOrNull(mainImageIndex) ?: imagePaths[0]
+        } else null
     }
 }

@@ -9,9 +9,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.clothingapp.data.AppDatabase
 import com.example.clothingapp.data.ProductRepository
 import com.example.clothingapp.ui.ProductViewModel
@@ -44,8 +46,16 @@ class MainActivity : ComponentActivity() {
                         composable("home") {
                             HomeScreen(navController, viewModel)
                         }
-                        composable("add") {
-                            AddProductScreen(navController, viewModel)
+                        composable(
+                            route = "add?productId={productId}",
+                            arguments = listOf(navArgument("productId") { 
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            })
+                        ) { backStackEntry ->
+                            val productId = backStackEntry.arguments?.getString("productId")?.toIntOrNull()
+                            AddProductScreen(navController, viewModel, productId)
                         }
                         composable("settings") {
                             SettingsScreen(navController, viewModel)

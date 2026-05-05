@@ -1,6 +1,7 @@
 package com.example.clothingapp.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,13 +24,28 @@ import com.example.clothingapp.ui.ProductViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(navController: NavController, viewModel: ProductViewModel) {
-    val availableFabrics by viewModel.availableFabrics.collectAsState()
-    var newFabricName by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("面料", "工厂", "辅料", "工艺")
+    val categories = listOf("fabric", "factory", "accessory", "process")
+
+    val fabrics by viewModel.fabrics.collectAsState()
+    val factories by viewModel.factories.collectAsState()
+    val accessories by viewModel.accessories.collectAsState()
+    val processes by viewModel.processes.collectAsState()
+
+    val currentList = when (selectedTab) {
+        0 -> fabrics
+        1 -> factories
+        2 -> accessories
+        else -> processes
+    }
+
+    var newItemName by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("设置", color = Color.White) },
+                title = { Text("系统设置", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color(0xFFD4A853))
@@ -46,41 +62,49 @@ fun SettingsScreen(navController: NavController, viewModel: ProductViewModel) {
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            Text(
-                "面料管理",
-                color = Color(0xFFD4A853),
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                "添加的面料将出现在款式编辑的下拉菜单中",
-                color = Color.Gray,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            // 分类选择
+            ScrollableTabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = Color(0xFFD4A853),
+                edgePadding = 0.dp,
+                divider = {}
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = { Text(title, fontSize = 14.sp) }
+                    )
+                }
+            }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 添加新项
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 TextField(
-                    value = newFabricName,
-                    onValueChange = { newFabricName = it },
+                    value = newItemName,
+                    onValueChange = { newItemName = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("输入新面料名称") },
+                    placeholder = { Text("添加新${tabs[selectedTab]}名称", color = Color.Gray) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color(0xFF2C2C2E),
                         unfocusedContainerColor = Color(0xFF2C2C2E),
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White
-                    )
+                    ),
+                    singleLine = true
                 )
                 Button(
                     onClick = {
-                        if (newFabricName.isNotBlank()) {
-                            viewModel.addFabric(newFabricName)
-                            newFabricName = ""
+                        if (newItemName.isNotBlank()) {
+                            viewModel.addItem(categories[selectedTab], newItemName)
+                            newItemName = ""
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4A853))
@@ -89,8 +113,9 @@ fun SettingsScreen(navController: NavController, viewModel: ProductViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
+            // 列表展示
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -98,7 +123,7 @@ fun SettingsScreen(navController: NavController, viewModel: ProductViewModel) {
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color(0xFF2C2C2E))
             ) {
-                items(availableFabrics) { fabric ->
+                items(currentList) { item ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -106,9 +131,9 @@ fun SettingsScreen(navController: NavController, viewModel: ProductViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(fabric, color = Color.White)
-                        IconButton(onClick = { viewModel.removeFabric(fabric) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                        Text(item, color = Color.White)
+                        IconButton(onClick = { viewModel.removeItem(categories[selectedTab], item) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red.copy(alpha = 0.7f))
                         }
                     }
                     Divider(color = Color(0xFF3A3A3C))

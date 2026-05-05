@@ -65,7 +65,7 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
                             textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
                             decorationBox = { innerTextField ->
                                 if (searchQuery.isEmpty()) {
-                                    Text("搜索编号、名称或工厂...", color = Color.Gray, fontSize = 14.sp)
+                                    Text("搜索编号...", color = Color.Gray, fontSize = 14.sp)
                                 }
                                 innerTextField()
                             }
@@ -120,54 +120,35 @@ fun ProductCard(product: Product, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
+                    .height(180.dp)
                     .background(Color(0xFF3A3A3C)),
                 contentAlignment = Alignment.Center
             ) {
-                if (product.imagePaths.isNotEmpty()) {
+                val mainImage = product.getMainImagePath()
+                if (mainImage != null) {
                     AsyncImage(
-                        model = product.imagePaths[0],
+                        model = mainImage,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(32.dp))
-                        Text("无图片", color = Color.Gray, fontSize = 12.sp)
-                    }
+                    Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
                 }
             }
-            Column(modifier = Modifier.padding(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF0F0F12).copy(alpha = 0.8f))
+                    .padding(12.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
                     text = product.code,
                     color = Color(0xFFD4A853),
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    fontSize = 16.sp
                 )
-                Text(
-                    text = product.name.ifEmpty { "未命名款式" },
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    maxLines = 1
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Text(
-                        text = "¥${String.format("%.1f", product.getTotalCost())}",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = product.getFormattedDate().split(" ")[0],
-                        color = Color.Gray,
-                        fontSize = 10.sp
-                    )
-                }
             }
         }
     }
