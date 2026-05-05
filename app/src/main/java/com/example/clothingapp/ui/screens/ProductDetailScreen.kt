@@ -12,10 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +30,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.clothingapp.ui.ProductViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,14 +87,14 @@ fun ProductDetailScreen(navController: NavController, viewModel: ProductViewMode
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(400.dp) // 增加高度
+                            .height(400.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFF2C2C2E))
                             .clickable { 
                                 initialImageIndex = product.mainImageIndex
                                 showFullScreenImage = true 
                             },
-                        contentScale = ContentScale.Fit // 改为 Fit 模式，显示全图
+                        contentScale = ContentScale.Fit
                     )
                     Text("点击图片翻看全部照片 (${product.imagePaths.size}张)", color = Color(0xFFD4A853), fontSize = 12.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
@@ -186,6 +184,7 @@ fun DetailRow(label: String, value: String, valueColor: Color = Color.White) {
 @Composable
 fun FullScreenImagePager(images: List<String>, initialIndex: Int, onDismiss: () -> Unit) {
     val pagerState = rememberPagerState(initialPage = initialIndex) { images.size }
+    val scope = rememberCoroutineScope()
     
     Dialog(
         onDismissRequest = onDismiss,
@@ -196,7 +195,7 @@ fun FullScreenImagePager(images: List<String>, initialIndex: Int, onDismiss: () 
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
                 pageSpacing = 16.dp,
-                userScrollEnabled = true // 始终允许翻页
+                userScrollEnabled = true // 确保 Pager 始终可以滚动
             ) { page ->
                 var scale by remember { mutableStateOf(1f) }
                 var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
@@ -206,9 +205,9 @@ fun FullScreenImagePager(images: List<String>, initialIndex: Int, onDismiss: () 
                         .fillMaxSize()
                         .pointerInput(Unit) {
                             detectTransformGestures { _, pan, zoom, _ ->
-                                // 只有当缩放倍数大于 1 时才允许平移，否则让位给翻页手势
+                                // 只有当缩放倍数显著大于 1 时才处理平移，否则让位给 Pager
                                 val newScale = (scale * zoom).coerceIn(1f, 5f)
-                                if (newScale > 1f) {
+                                if (newScale > 1.05f) {
                                     scale = newScale
                                     offset += pan
                                 } else {
@@ -230,8 +229,30 @@ fun FullScreenImagePager(images: List<String>, initialIndex: Int, onDismiss: () 
                                 translationX = offset.x,
                                 translationY = offset.y
                             ),
-                        contentScale = ContentScale.Fit // 全屏也显示全图
+                        contentScale = ContentScale.Fit
                     )
+                }
+            }
+            
+            // 显式的左右翻页按钮
+            if (images.size > 1) {
+                // 左箭头
+                if (pagerState.currentPage > 0) {
+                    IconButton(
+                        onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
+                        modifier = Modifier.align(Alignment.CenterStart).padding(16.dp).background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                    ) {
+                        Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "Prev", tint = Color.White, modifier = Modifier.size(32.dp))
+                    }
+                }
+                // 右箭头
+                if (pagerState.currentPage < images.size - 1) {
+                    IconButton(
+                        onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
+                        modifier = Modifier.align(Alignment.CenterEnd).padding(16.dp).background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                    ) {
+                        Icon(Icons.Default.KeyboardArrowRight, contentDescription = "Next", tint = Color.White, modifier = Modifier.size(32.dp))
+                    }
                 }
             }
             
