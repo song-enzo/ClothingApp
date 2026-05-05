@@ -89,15 +89,16 @@ fun ProductDetailScreen(navController: NavController, viewModel: ProductViewMode
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(350.dp)
+                            .height(400.dp) // 增加高度
                             .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF2C2C2E))
                             .clickable { 
                                 initialImageIndex = product.mainImageIndex
                                 showFullScreenImage = true 
                             },
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Fit // 改为 Fit 模式，显示全图
                     )
-                    Text("点击图片查看全部照片 (${product.imagePaths.size}张)", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+                    Text("点击图片翻看全部照片 (${product.imagePaths.size}张)", color = Color(0xFFD4A853), fontSize = 12.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
 
                 // 基本信息
@@ -195,7 +196,7 @@ fun FullScreenImagePager(images: List<String>, initialIndex: Int, onDismiss: () 
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
                 pageSpacing = 16.dp,
-                userScrollEnabled = true // 确保用户可以滚动
+                userScrollEnabled = true // 始终允许翻页
             ) { page ->
                 var scale by remember { mutableStateOf(1f) }
                 var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
@@ -205,10 +206,13 @@ fun FullScreenImagePager(images: List<String>, initialIndex: Int, onDismiss: () 
                         .fillMaxSize()
                         .pointerInput(Unit) {
                             detectTransformGestures { _, pan, zoom, _ ->
-                                scale = (scale * zoom).coerceIn(1f, 5f)
-                                if (scale > 1f) {
+                                // 只有当缩放倍数大于 1 时才允许平移，否则让位给翻页手势
+                                val newScale = (scale * zoom).coerceIn(1f, 5f)
+                                if (newScale > 1f) {
+                                    scale = newScale
                                     offset += pan
                                 } else {
+                                    scale = 1f
                                     offset = androidx.compose.ui.geometry.Offset.Zero
                                 }
                             }
@@ -226,7 +230,7 @@ fun FullScreenImagePager(images: List<String>, initialIndex: Int, onDismiss: () 
                                 translationX = offset.x,
                                 translationY = offset.y
                             ),
-                        contentScale = ContentScale.Fit
+                        contentScale = ContentScale.Fit // 全屏也显示全图
                     )
                 }
             }
@@ -240,11 +244,13 @@ fun FullScreenImagePager(images: List<String>, initialIndex: Int, onDismiss: () 
             }
             
             // 页码指示
-            Text(
-                "${pagerState.currentPage + 1} / ${images.size}",
-                color = Color.White,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(32.dp)
-            )
+            if (images.size > 1) {
+                Text(
+                    "${pagerState.currentPage + 1} / ${images.size}",
+                    color = Color.White,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(32.dp)
+                )
+            }
         }
     }
 }

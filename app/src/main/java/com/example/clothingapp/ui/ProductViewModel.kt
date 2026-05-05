@@ -10,6 +10,7 @@ import com.example.clothingapp.data.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -42,9 +43,10 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
         loadProducts()
     }
 
-    private fun loadProducts() {
+    fun loadProducts() {
         viewModelScope.launch {
-            repository.allProducts.collect { products ->
+            // 使用 collectLatest 确保始终获取最新数据并触发 UI 刷新
+            repository.allProducts.collectLatest { products ->
                 _products.value = products
             }
         }
@@ -53,8 +55,12 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
         viewModelScope.launch {
-            repository.searchProducts(query).collect { products ->
-                _products.value = products
+            if (query.isEmpty()) {
+                loadProducts()
+            } else {
+                repository.searchProducts(query).collectLatest { products ->
+                    _products.value = products
+                }
             }
         }
     }
@@ -80,9 +86,8 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
         }
     }
 
-    // 照片持久化：将 Uri 对应的文件拷贝到 App 内部存储
     fun saveImageToInternal(context: Context, uriString: String): String {
-        if (uriString.startsWith("file:///data/user/0/")) return uriString // 已经是内部路径
+        if (uriString.startsWith("file:///data/user/0/")) return uriString
         
         return try {
             val uri = Uri.parse(uriString)
@@ -97,7 +102,7 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
             }
             Uri.fromFile(file).toString()
         } catch (e: Exception) {
-            uriString // 失败则返回原路径
+            uriString
         }
     }
 
@@ -108,12 +113,15 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
             } else {
                 repository.updateProduct(product)
             }
+            // 保存后强制重新加载，确保主界面刷新
+            loadProducts()
         }
     }
 
     fun deleteProduct(product: Product) {
         viewModelScope.launch {
             repository.deleteProduct(product)
+            loadProducts()
         }
     }
 }

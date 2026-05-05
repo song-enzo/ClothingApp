@@ -34,6 +34,11 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
     val products by viewModel.products.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
 
+    // 每次进入页面时强制刷新一次数据，防止列表消失
+    LaunchedEffect(Unit) {
+        viewModel.loadProducts()
+    }
+
     Scaffold(
         topBar = {
             Column(modifier = Modifier.background(Color(0xFF0F0F12))) {
@@ -46,7 +51,6 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F0F12))
                 )
-                // 搜索栏
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -97,7 +101,7 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(padding)
             ) {
-                items(products) { product ->
+                items(products, key = { it.id }) { product ->
                     ProductCard(product) {
                         navController.navigate("detail/${product.id}")
                     }
@@ -120,7 +124,7 @@ fun ProductCard(product: Product, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(220.dp) // 稍微增加高度以更好地显示全图
                     .background(Color(0xFF3A3A3C)),
                 contentAlignment = Alignment.Center
             ) {
@@ -129,8 +133,8 @@ fun ProductCard(product: Product, onClick: () -> Unit) {
                     AsyncImage(
                         model = mainImage,
                         contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        modifier = Modifier.fillMaxSize().padding(4.dp), // 留一点边距
+                        contentScale = ContentScale.Fit // 改为 Fit 模式，显示全图
                     )
                 } else {
                     Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
