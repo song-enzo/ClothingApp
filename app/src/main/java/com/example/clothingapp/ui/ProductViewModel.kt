@@ -66,7 +66,7 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
                 product.fabrics.any { it.name.lowercase().contains(query) }
             
             val matchesMonth = if (month == null) true else {
-                val cal = Calendar.getInstance().apply { timeInMillis = product.timestamp }
+                val cal = Calendar.getInstance().apply { timeInMillis = product.createdAt }
                 cal.get(Calendar.MONTH) + 1 == month
             }
             
