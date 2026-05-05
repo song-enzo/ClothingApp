@@ -193,7 +193,9 @@ fun FullScreenImagePager(images: List<String>, initialIndex: Int, onDismiss: () 
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                pageSpacing = 16.dp,
+                userScrollEnabled = true // 确保用户可以滚动
             ) { page ->
                 var scale by remember { mutableStateOf(1f) }
                 var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
@@ -204,7 +206,11 @@ fun FullScreenImagePager(images: List<String>, initialIndex: Int, onDismiss: () 
                         .pointerInput(Unit) {
                             detectTransformGestures { _, pan, zoom, _ ->
                                 scale = (scale * zoom).coerceIn(1f, 5f)
-                                offset += pan
+                                if (scale > 1f) {
+                                    offset += pan
+                                } else {
+                                    offset = androidx.compose.ui.geometry.Offset.Zero
+                                }
                             }
                         },
                     contentAlignment = Alignment.Center

@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -25,19 +24,21 @@ import com.example.clothingapp.ui.ProductViewModel
 @Composable
 fun SettingsScreen(navController: NavController, viewModel: ProductViewModel) {
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("面料", "工厂", "辅料", "工艺")
-    val categories = listOf("fabric", "factory", "accessory", "process")
+    val tabs = listOf("面料", "工厂", "辅料", "工艺", "款式名称")
+    val categories = listOf("fabric", "factory", "accessory", "process", "name")
 
     val fabrics by viewModel.fabrics.collectAsState()
     val factories by viewModel.factories.collectAsState()
     val accessories by viewModel.accessories.collectAsState()
     val processes by viewModel.processes.collectAsState()
+    val names by viewModel.names.collectAsState()
 
     val currentList = when (selectedTab) {
         0 -> fabrics
         1 -> factories
         2 -> accessories
-        else -> processes
+        3 -> processes
+        else -> names
     }
 
     var newItemName by remember { mutableStateOf("") }
@@ -91,7 +92,7 @@ fun SettingsScreen(navController: NavController, viewModel: ProductViewModel) {
                     value = newItemName,
                     onValueChange = { newItemName = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("添加新${tabs[selectedTab]}名称", color = Color.Gray) },
+                    placeholder = { Text("添加新${tabs[selectedTab]}", color = Color.Gray) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color(0xFF2C2C2E),
                         unfocusedContainerColor = Color(0xFF2C2C2E),

@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,6 +40,7 @@ import com.example.clothingapp.ui.ProductViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, productId: Int? = null) {
+    val context = LocalContext.current
     val products by viewModel.products.collectAsState()
     val existingProduct = remember(productId) { products.find { it.id == productId } }
 
@@ -71,9 +73,13 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
     val availableFactories by viewModel.factories.collectAsState()
     val availableAccessories by viewModel.accessories.collectAsState()
     val availableProcesses by viewModel.processes.collectAsState()
+    val availableNames by viewModel.names.collectAsState()
 
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-        selectedImages.addAll(uris.map { it.toString() })
+        uris.forEach { uri ->
+            val internalPath = viewModel.saveImageToInternal(context, uri.toString())
+            selectedImages.add(internalPath)
+        }
     }
 
     val totalCost = (fabrics.sumOf { it.total } +
@@ -133,7 +139,7 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 图片管理
-            SectionHeader("款式图片 (点击设为主图，长按删除)")
+            SectionHeader("款式图片 (点击设为主图)")
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -154,7 +160,6 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
                                 .clickable { mainImageIndex = index },
                             contentScale = ContentScale.Crop
                         )
-                        // 删除按钮
                         IconButton(
                             onClick = { 
                                 selectedImages.removeAt(index)
@@ -181,7 +186,7 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
 
             // 基本信息
             FormField("编号 (必填)", code, placeholder = "请输入款式编号") { code = it }
-            FormField("名称", name, placeholder = "请输入款式名称") { name = it }
+            DropdownField("款式名称", name, availableNames) { name = it }
             DropdownField("生产工厂", factoryName, availableFactories) { factoryName = it }
 
             // 面料动态行
@@ -189,8 +194,8 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
             fabrics.forEachIndexed { index, item ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
                     DropdownField("面料名称", item.name, availableFabrics, Modifier.weight(1.2f)) { fabrics[index] = item.copy(name = it) }
-                    PriceField("米数", item.meters.toString(), Modifier.weight(0.8f)) { fabrics[index] = item.copy(meters = it.toDoubleOrNull() ?: 0.0) }
-                    PriceField("单价", item.pricePerMeter.toString(), Modifier.weight(0.8f)) { fabrics[index] = item.copy(pricePerMeter = it.toDoubleOrNull() ?: 0.0) }
+                    DecimalField("米数", item.meters.toString(), Modifier.weight(0.8f)) { fabrics[index] = item.copy(meters = it.toDoubleOrNull() ?: 0.0) }
+                    DecimalField("单价", item.pricePerMeter.toString(), Modifier.weight(0.8f)) { fabrics[index] = item.copy(pricePerMeter = it.toDoubleOrNull() ?: 0.0) }
                     IconButton(onClick = { if (fabrics.size > 1) fabrics.removeAt(index) }) {
                         Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red.copy(alpha = 0.5f))
                     }
@@ -202,7 +207,7 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
             processes.forEachIndexed { index, item ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
                     DropdownField("工艺名称", item.name, availableProcesses, Modifier.weight(1.5f)) { processes[index] = item.copy(name = it) }
-                    PriceField("费用", item.cost.toString(), Modifier.weight(1f)) { processes[index] = item.copy(cost = it.toDoubleOrNull() ?: 0.0) }
+                    DecimalField("单价", item.cost.toString(), Modifier.weight(1f)) { processes[index] = item.copy(cost = it.toDoubleOrNull() ?: 0.0) }
                     IconButton(onClick = { if (processes.size > 1) processes.removeAt(index) }) {
                         Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red.copy(alpha = 0.5f))
                     }
@@ -214,7 +219,7 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
             accessories.forEachIndexed { index, item ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
                     DropdownField("辅料名称", item.name, availableAccessories, Modifier.weight(1.5f)) { accessories[index] = item.copy(name = it) }
-                    PriceField("费用", item.cost.toString(), Modifier.weight(1f)) { accessories[index] = item.copy(cost = it.toDoubleOrNull() ?: 0.0) }
+                    DecimalField("单价", item.cost.toString(), Modifier.weight(1f)) { accessories[index] = item.copy(cost = it.toDoubleOrNull() ?: 0.0) }
                     IconButton(onClick = { if (accessories.size > 1) accessories.removeAt(index) }) {
                         Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red.copy(alpha = 0.5f))
                     }
@@ -223,8 +228,8 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
 
             // 固定费用
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PriceField("工价", laborCost, Modifier.weight(1f)) { laborCost = it }
-                PriceField("烫/扣", ironingAndButtons, Modifier.weight(1f)) { ironingAndButtons = it }
+                DecimalField("工价", laborCost, Modifier.weight(1f)) { laborCost = it }
+                DecimalField("烫/扣", ironingAndButtons, Modifier.weight(1f)) { ironingAndButtons = it }
             }
 
             // 综合成本
@@ -238,6 +243,32 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
             FormField("备注", notes, singleLine = false, placeholder = "添加备注信息...") { notes = it }
             Spacer(modifier = Modifier.height(40.dp))
         }
+    }
+}
+
+@Composable
+fun DecimalField(label: String, value: String, modifier: Modifier = Modifier, onValueChange: (String) -> Unit) {
+    var textState by remember(value) { mutableStateOf(if (value == "0.0" || value == "0") "" else value) }
+    
+    Column(modifier = modifier) {
+        Text(label, color = Color(0xFF8E8E93), fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
+        BasicTextField(
+            value = textState,
+            onValueChange = { 
+                if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) {
+                    textState = it
+                    onValueChange(it)
+                }
+            },
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color(0xFF2C2C2E)).padding(12.dp),
+            textStyle = TextStyle(color = Color(0xFFD4A853), fontSize = 14.sp, fontWeight = FontWeight.Bold),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            decorationBox = { innerTextField ->
+                if (textState.isEmpty()) Text("0", color = Color.Gray, fontSize = 14.sp)
+                innerTextField()
+            }
+        )
     }
 }
 
@@ -269,25 +300,6 @@ fun DropdownField(label: String, value: String, options: List<String>, modifier:
                 }
             }
         }
-    }
-}
-
-@Composable
-fun PriceField(label: String, value: String, modifier: Modifier = Modifier, onValueChange: (String) -> Unit) {
-    Column(modifier = modifier) {
-        Text(label, color = Color(0xFF8E8E93), fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
-        BasicTextField(
-            value = if (value == "0.0" || value == "0") "" else value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color(0xFF2C2C2E)).padding(12.dp).onFocusChanged { if (it.isFocused && (value == "0.0" || value == "0")) onValueChange("") },
-            textStyle = TextStyle(color = Color(0xFFD4A853), fontSize = 14.sp, fontWeight = FontWeight.Bold),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            decorationBox = { innerTextField ->
-                if (value.isEmpty() || value == "0.0" || value == "0") Text("0", color = Color.Gray, fontSize = 14.sp)
-                innerTextField()
-            }
-        )
     }
 }
 

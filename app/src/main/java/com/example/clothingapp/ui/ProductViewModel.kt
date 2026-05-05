@@ -1,5 +1,7 @@
 package com.example.clothingapp.ui
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -9,6 +11,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
 
 class ProductViewModel(private val repository: ProductRepository) : ViewModel() {
     private val _products = MutableStateFlow<List<Product>>(emptyList())
@@ -29,6 +34,9 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
 
     private val _processes = MutableStateFlow(listOf("印花", "绣花", "洗水", "压褶"))
     val processes: StateFlow<List<String>> = _processes.asStateFlow()
+
+    private val _names = MutableStateFlow(listOf("连衣裙", "衬衫", "外套", "长裤", "半身裙"))
+    val names: StateFlow<List<String>> = _names.asStateFlow()
 
     init {
         loadProducts()
@@ -51,7 +59,6 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
         }
     }
 
-    // 通用分类管理方法
     fun addItem(category: String, name: String) {
         if (name.isBlank()) return
         when (category) {
@@ -59,6 +66,7 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
             "factory" -> if (!_factories.value.contains(name)) _factories.value = _factories.value + name
             "accessory" -> if (!_accessories.value.contains(name)) _accessories.value = _accessories.value + name
             "process" -> if (!_processes.value.contains(name)) _processes.value = _processes.value + name
+            "name" -> if (!_names.value.contains(name)) _names.value = _names.value + name
         }
     }
 
@@ -68,6 +76,28 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
             "factory" -> _factories.value = _factories.value - name
             "accessory" -> _accessories.value = _accessories.value - name
             "process" -> _processes.value = _processes.value - name
+            "name" -> _names.value = _names.value - name
+        }
+    }
+
+    // 照片持久化：将 Uri 对应的文件拷贝到 App 内部存储
+    fun saveImageToInternal(context: Context, uriString: String): String {
+        if (uriString.startsWith("file:///data/user/0/")) return uriString // 已经是内部路径
+        
+        return try {
+            val uri = Uri.parse(uriString)
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val fileName = "img_${UUID.randomUUID()}.jpg"
+            val file = File(context.filesDir, fileName)
+            val outputStream = FileOutputStream(file)
+            inputStream?.use { input ->
+                outputStream.use { output ->
+                    input.copyTo(output)
+                }
+            }
+            Uri.fromFile(file).toString()
+        } catch (e: Exception) {
+            uriString // 失败则返回原路径
         }
     }
 
