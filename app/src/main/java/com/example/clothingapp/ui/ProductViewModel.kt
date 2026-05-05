@@ -19,14 +19,21 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 class ProductViewModel(private val repository: ProductRepository) : ViewModel() {
-    private val _products = MutableStateFlow<List<Product>>(emptyList())
-    val products: StateFlow<List<Product>> = _products.asStateFlow()
+    private val _allProducts = MutableStateFlow<List<Product>>(emptyList())
+    private val _filteredProducts = MutableStateFlow<List<Product>>(emptyList())
+    val products: StateFlow<List<Product>> = _filteredProducts.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _selectedMonth = MutableStateFlow<Int?>(null) // null 表示全部，1-12 表示月份
+    private val _selectedMonth = MutableStateFlow<Int?>(null)
     val selectedMonth: StateFlow<Int?> = _selectedMonth.asStateFlow()
+
+    private val _selectedName = MutableStateFlow<String?>(null)
+    val selectedName: StateFlow<String?> = _selectedName.asStateFlow()
+
+    private val _selectedFabric = MutableStateFlow<String?>(null)
+    val selectedFabric: StateFlow<String?> = _selectedFabric.asStateFlow()
 
     // 分类管理数据
     private val _fabrics = MutableStateFlow(listOf("棉", "麻", "丝", "毛", "涤纶", "雪纺"))
@@ -51,16 +58,19 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
     fun loadProducts() {
         viewModelScope.launch {
             repository.allProducts.collectLatest { products ->
-                filterAndSetProducts(products)
+                _allProducts.value = products
+                applyFilters()
             }
         }
     }
 
-    private fun filterAndSetProducts(allProducts: List<Product>) {
+    private fun applyFilters() {
         val query = _searchQuery.value.lowercase()
         val month = _selectedMonth.value
+        val nameFilter = _selectedName.value
+        val fabricFilter = _selectedFabric.value
         
-        _products.value = allProducts.filter { product ->
+        _filteredProducts.value = _allProducts.value.filter { product ->
             val matchesQuery = query.isEmpty() || 
                 product.code.lowercase().contains(query) || 
                 product.fabrics.any { it.name.lowercase().contains(query) }
@@ -69,19 +79,32 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
                 val cal = Calendar.getInstance().apply { timeInMillis = product.createdAt }
                 cal.get(Calendar.MONTH) + 1 == month
             }
+
+            val matchesName = if (nameFilter == null) true else product.name == nameFilter
+            val matchesFabric = if (fabricFilter == null) true else product.fabrics.any { it.name == fabricFilter }
             
-            matchesQuery && matchesMonth
+            matchesQuery && matchesMonth && matchesName && matchesFabric
         }
     }
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
-        loadProducts()
+        applyFilters()
     }
 
     fun setSelectedMonth(month: Int?) {
         _selectedMonth.value = month
-        loadProducts()
+        applyFilters()
+    }
+
+    fun setSelectedName(name: String?) {
+        _selectedName.value = name
+        applyFilters()
+    }
+
+    fun setSelectedFabric(fabric: String?) {
+        _selectedFabric.value = fabric
+        applyFilters()
     }
 
     fun addItem(category: String, name: String) {
@@ -133,19 +156,26 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
         }
     }
 
-    // 备份功能：打包数据库和照片
+    // 稳健的备份功能
     fun exportBackup(context: Context): File? {
-        val backupFile = File(context.cacheDir, "ClothingApp_Backup_${System.currentTimeMillis()}.zip")
+        val backupFile = File(context.cacheDir, "ClothingApp_Backup.zip")
+        if (backupFile.exists()) backupFile.delete()
+        
         return try {
             ZipOutputStream(BufferedOutputStream(FileOutputStream(backupFile))).use { zos ->
-                // 1. 备份数据库文件
+                // 1. 备份数据库文件（使用 .wal 和 .shm 兼容模式）
                 val dbFile = context.getDatabasePath("clothing_database")
                 if (dbFile.exists()) {
                     addToZip(zos, dbFile, "database/clothing_database")
+                    // 同时尝试备份辅助文件
+                    val walFile = File(dbFile.path + "-wal")
+                    if (walFile.exists()) addToZip(zos, walFile, "database/clothing_database-wal")
+                    val shmFile = File(dbFile.path + "-shm")
+                    if (shmFile.exists()) addToZip(zos, shmFile, "database/clothing_database-shm")
                 }
-                // 2. 备份照片文件夹
-                val filesDir = context.filesDir
-                filesDir.listFiles()?.forEach { file ->
+                
+                // 2. 备份照片
+                context.filesDir.listFiles()?.forEach { file ->
                     if (file.name.startsWith("img_")) {
                         addToZip(zos, file, "images/${file.name}")
                     }
@@ -153,18 +183,20 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
             }
             backupFile
         } catch (e: Exception) {
+            e.printStackTrace()
             null
         }
     }
 
     private fun addToZip(zos: ZipOutputStream, file: File, path: String) {
-        val entry = ZipEntry(path)
-        zos.putNextEntry(entry)
-        file.inputStream().use { it.copyTo(zos) }
-        zos.closeEntry()
+        try {
+            val entry = ZipEntry(path)
+            zos.putNextEntry(entry)
+            file.inputStream().use { it.copyTo(zos) }
+            zos.closeEntry()
+        } catch (e: Exception) {}
     }
 
-    // 恢复功能：解压并替换
     fun importBackup(context: Context, uri: Uri, onComplete: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
@@ -172,14 +204,21 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
                 ZipInputStream(BufferedInputStream(inputStream)).use { zis ->
                     var entry: ZipEntry? = zis.nextEntry
                     while (entry != null) {
-                        if (entry.name.startsWith("database/")) {
-                            val dbFile = context.getDatabasePath("clothing_database")
-                            dbFile.parentFile?.mkdirs()
-                            FileOutputStream(dbFile).use { zis.copyTo(it) }
-                        } else if (entry.name.startsWith("images/")) {
-                            val fileName = entry.name.substringAfter("images/")
-                            val destFile = File(context.filesDir, fileName)
-                            FileOutputStream(destFile).use { zis.copyTo(it) }
+                        val destFile = when {
+                            entry.name.startsWith("database/") -> {
+                                val dbName = entry.name.substringAfter("database/")
+                                context.getDatabasePath(dbName)
+                            }
+                            entry.name.startsWith("images/") -> {
+                                val fileName = entry.name.substringAfter("images/")
+                                File(context.filesDir, fileName)
+                            }
+                            else -> null
+                        }
+                        
+                        destFile?.let {
+                            it.parentFile?.mkdirs()
+                            FileOutputStream(it).use { out -> zis.copyTo(out) }
                         }
                         zis.closeEntry()
                         entry = zis.nextEntry

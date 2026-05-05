@@ -2,18 +2,14 @@ package com.example.clothingapp.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,10 +32,13 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
     val products by viewModel.products.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedMonth by viewModel.selectedMonth.collectAsState()
+    val selectedName by viewModel.selectedName.collectAsState()
+    val selectedFabric by viewModel.selectedFabric.collectAsState()
+    
+    val availableNames by viewModel.names.collectAsState()
+    val availableFabrics by viewModel.fabrics.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadProducts()
-    }
+    var showFilterMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -47,6 +46,14 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
                 TopAppBar(
                     title = { Text("服装型号管理", color = Color.White, fontWeight = FontWeight.Bold) },
                     actions = {
+                        // 筛选按钮
+                        IconButton(onClick = { showFilterMenu = !showFilterMenu }) {
+                            Icon(
+                                Icons.Default.List, 
+                                contentDescription = "Filter", 
+                                tint = if (selectedMonth != null || selectedName != null || selectedFabric != null) Color(0xFFD4A853) else Color.White
+                            )
+                        }
                         IconButton(onClick = { navController.navigate("settings") }) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color(0xFFD4A853))
                         }
@@ -58,7 +65,7 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                         .clip(RoundedCornerShape(24.dp))
                         .background(Color(0xFF2C2C2E))
                         .padding(horizontal = 16.dp, vertical = 10.dp)
@@ -81,17 +88,23 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
                     }
                 }
 
-                // 月份筛选
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    MonthChip("全部", selectedMonth == null) { viewModel.setSelectedMonth(null) }
-                    (1..12).forEach { month ->
-                        MonthChip("${month}月", selectedMonth == month) { viewModel.setSelectedMonth(month) }
+                // 下拉筛选区域
+                if (showFilterMenu) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterDropdown("月份", if (selectedMonth == null) "全部" else "${selectedMonth}月", (1..12).map { "${it}月" }, Modifier.weight(1f)) {
+                            viewModel.setSelectedMonth(if (it == "全部") null else it.replace("月", "").toInt())
+                        }
+                        FilterDropdown("款式", selectedName ?: "全部", listOf("全部") + availableNames, Modifier.weight(1f)) {
+                            viewModel.setSelectedName(if (it == "全部") null else it)
+                        }
+                        FilterDropdown("面料", selectedFabric ?: "全部", listOf("全部") + availableFabrics, Modifier.weight(1f)) {
+                            viewModel.setSelectedFabric(if (it == "全部") null else it)
+                        }
                     }
                 }
             }
@@ -130,19 +143,44 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
 }
 
 @Composable
-fun MonthChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) Color(0xFFD4A853) else Color(0xFF2C2C2E),
-        contentColor = if (isSelected) Color(0xFF1A1A1E) else Color.White
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            fontSize = 12.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-        )
+fun FilterDropdown(label: String, current: String, options: List<String>, modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val displayOptions = if (options.contains("全部")) options else listOf("全部") + options
+
+    Box(modifier = modifier) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
+            shape = RoundedCornerShape(8.dp),
+            color = if (current == "全部") Color(0xFF2C2C2E) else Color(0xFFD4A853).copy(alpha = 0.2f),
+            border = if (current != "全部") androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD4A853)) else null
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = current,
+                    color = if (current == "全部") Color.White else Color(0xFFD4A853),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1
+                )
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+            }
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color(0xFF2C2C2E)).width(120.dp)
+        ) {
+            displayOptions.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option, color = Color.White, fontSize = 14.sp) },
+                    onClick = { onSelect(option); expanded = false }
+                )
+            }
+        }
     }
 }
 
