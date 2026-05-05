@@ -2,10 +2,12 @@ package com.example.clothingapp.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -33,8 +35,8 @@ import com.example.clothingapp.ui.ProductViewModel
 fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
     val products by viewModel.products.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
 
-    // 每次进入页面时强制刷新一次数据，防止列表消失
     LaunchedEffect(Unit) {
         viewModel.loadProducts()
     }
@@ -51,10 +53,12 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F0F12))
                 )
+                
+                // 搜索框
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
                         .clip(RoundedCornerShape(24.dp))
                         .background(Color(0xFF2C2C2E))
                         .padding(horizontal = 16.dp, vertical = 10.dp)
@@ -69,11 +73,25 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
                             textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
                             decorationBox = { innerTextField ->
                                 if (searchQuery.isEmpty()) {
-                                    Text("搜索编号...", color = Color.Gray, fontSize = 14.sp)
+                                    Text("搜索编号或面料...", color = Color.Gray, fontSize = 14.sp)
                                 }
                                 innerTextField()
                             }
                         )
+                    }
+                }
+
+                // 月份筛选
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MonthChip("全部", selectedMonth == null) { viewModel.setSelectedMonth(null) }
+                    (1..12).forEach { month ->
+                        MonthChip("${month}月", selectedMonth == month) { viewModel.setSelectedMonth(month) }
                     }
                 }
             }
@@ -90,8 +108,8 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
         containerColor = Color(0xFF1A1A1E)
     ) { padding ->
         if (products.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("暂无款式数据", color = Color.Gray)
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Text("暂无匹配款式", color = Color.Gray)
             }
         } else {
             LazyVerticalGrid(
@@ -112,20 +130,32 @@ fun HomeScreen(navController: NavController, viewModel: ProductViewModel) {
 }
 
 @Composable
+fun MonthChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        color = if (isSelected) Color(0xFFD4A853) else Color(0xFF2C2C2E),
+        contentColor = if (isSelected) Color(0xFF1A1A1E) else Color.White
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            fontSize = 12.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+        )
+    }
+}
+
+@Composable
 fun ProductCard(product: Product, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = Color(0xFF2C2C2E)),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp) // 稍微增加高度以更好地显示全图
-                    .background(Color(0xFF3A3A3C)),
+                modifier = Modifier.fillMaxWidth().height(220.dp).background(Color(0xFF3A3A3C)),
                 contentAlignment = Alignment.Center
             ) {
                 val mainImage = product.getMainImagePath()
@@ -133,26 +163,18 @@ fun ProductCard(product: Product, onClick: () -> Unit) {
                     AsyncImage(
                         model = mainImage,
                         contentDescription = null,
-                        modifier = Modifier.fillMaxSize().padding(4.dp), // 留一点边距
-                        contentScale = ContentScale.Fit // 改为 Fit 模式，显示全图
+                        modifier = Modifier.fillMaxSize().padding(4.dp),
+                        contentScale = ContentScale.Fit
                     )
                 } else {
                     Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
                 }
             }
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF0F0F12).copy(alpha = 0.8f))
-                    .padding(12.dp),
+                modifier = Modifier.fillMaxWidth().background(Color(0xFF0F0F12).copy(alpha = 0.8f)).padding(12.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = product.code,
-                    color = Color(0xFFD4A853),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
+                Text(text = product.code, color = Color(0xFFD4A853), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }

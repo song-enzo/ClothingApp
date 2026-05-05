@@ -21,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -44,7 +43,6 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
     val products by viewModel.products.collectAsState()
     val existingProduct = remember(productId) { products.find { it.id == productId } }
 
-    // 状态初始化
     var code by remember { mutableStateOf(existingProduct?.code ?: "") }
     var name by remember { mutableStateOf(existingProduct?.name ?: "") }
     var factoryName by remember { mutableStateOf(existingProduct?.factoryName ?: "") }
@@ -68,7 +66,6 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
     } }
     var mainImageIndex by remember { mutableStateOf(existingProduct?.mainImageIndex ?: 0) }
 
-    // 下拉数据
     val availableFabrics by viewModel.fabrics.collectAsState()
     val availableFactories by viewModel.factories.collectAsState()
     val availableAccessories by viewModel.accessories.collectAsState()
@@ -138,7 +135,6 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 图片管理
             SectionHeader("款式图片 (点击设为主图)")
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -158,7 +154,7 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable { mainImageIndex = index },
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Fit
                         )
                         IconButton(
                             onClick = { 
@@ -184,12 +180,18 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
                 }
             }
 
-            // 基本信息
             FormField("编号 (必填)", code, placeholder = "请输入款式编号") { code = it }
             DropdownField("款式名称", name, availableNames) { name = it }
+            
+            // 交换位置：工价和烫扣上移
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                DecimalField("工价", laborCost, Modifier.weight(1f)) { laborCost = it }
+                DecimalField("烫/扣", ironingAndButtons, Modifier.weight(1f)) { ironingAndButtons = it }
+            }
+            
+            // 生产工厂下移
             DropdownField("生产工厂", factoryName, availableFactories) { factoryName = it }
 
-            // 面料动态行
             SectionHeader("面料明细", onAdd = { fabrics.add(FabricItem()) })
             fabrics.forEachIndexed { index, item ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
@@ -202,7 +204,6 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
                 }
             }
 
-            // 加工工艺动态行
             SectionHeader("加工工艺", onAdd = { processes.add(ProcessItem()) })
             processes.forEachIndexed { index, item ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
@@ -214,7 +215,6 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
                 }
             }
 
-            // 辅料动态行
             SectionHeader("辅料明细", onAdd = { accessories.add(ProcessItem()) })
             accessories.forEachIndexed { index, item ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
@@ -226,13 +226,6 @@ fun AddProductScreen(navController: NavController, viewModel: ProductViewModel, 
                 }
             }
 
-            // 固定费用
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DecimalField("工价", laborCost, Modifier.weight(1f)) { laborCost = it }
-                DecimalField("烫/扣", ironingAndButtons, Modifier.weight(1f)) { ironingAndButtons = it }
-            }
-
-            // 综合成本
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF2C2C2E))) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("综合成本价", color = Color.White, modifier = Modifier.weight(1f))
